@@ -33,7 +33,7 @@ class AuditLogger:
             resource_type=resource_type,
             resource_id=resource_id,
             description=description,
-            metadata=metadata,
+            extra_data=metadata,
             ip_address=ip_address,
         )
         self.db.add(event)

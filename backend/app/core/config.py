@@ -19,10 +19,15 @@ class Settings(BaseSettings):
 
     # ── Application ────────────────────────────────────────────
     app_name: str = "KshetraAI"
+    app_version: str = "0.1.0-alpha"
     app_env: Literal["development", "demo", "production"] = "development"
     debug: bool = False
     secret_key: str = secrets.token_urlsafe(64)
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    @property
+    def environment(self) -> str:
+        return self.app_env
 
     @property
     def cors_origins(self) -> list[str]:
@@ -33,6 +38,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
+
+    @property
+    def jwt_expire_minutes(self) -> int:
+        return self.jwt_access_token_expire_minutes
 
     # ── Database ───────────────────────────────────────────────
     database_url: str = "sqlite:///./kshetraai.db"
@@ -46,6 +55,10 @@ class Settings(BaseSettings):
     deliverables_dir: str = "./deliverables"
     max_upload_size_mb: int = 50
     allowed_upload_types: str = "pdf,docx,xlsx,pptx,png,jpg,jpeg,txt"
+
+    @property
+    def max_file_size_mb(self) -> int:
+        return self.max_upload_size_mb
 
     @property
     def allowed_upload_extensions(self) -> set[str]:

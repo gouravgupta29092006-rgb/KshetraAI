@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // GitHub Pages SPA routing fix.
+      // When a direct URL is accessed (e.g. /KshetraAI/runs), GitHub Pages serves this 404.html.
+      // We redirect to index.html with the path encoded as a query param.
+      // index.html then reads it and restores the URL via window.history.replaceState.
+      // This preserves React Router's BrowserRouter on GitHub Pages.
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + 1).join('/') + '/?p=/' +
+        l.pathname.slice(1).split('/').slice(1).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>

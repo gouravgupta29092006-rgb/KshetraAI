@@ -1,26 +1,30 @@
 """
 KshetraAI — Security utilities: JWT, password hashing, current user.
+Uses bcrypt directly (passlib incompatibility with bcrypt>=5.x).
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import bcrypt as _bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=settings.bcrypt_rounds)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+_ROUNDS = settings.bcrypt_rounds
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return _bcrypt.hashpw(password.encode("utf-8"), _bcrypt.gensalt(rounds=_ROUNDS)).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return _bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -46,7 +50,7 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    from app.models.user import User
+    from app.models import User
     payload = decode_token(token)
     user_id: str = payload.get("sub")
     if not user_id:
@@ -57,13 +61,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-def require_role(*roles: str):
+def require_role(*roles):
     """Dependency factory: raises 403 if user doesn't have one of the required roles."""
     def _check(current_user=Depends(get_current_user)):
-        if current_user.role not in roles:
+        role_val = current_user.role.value if hasattr(current_user.role, 'value') else str(current_user.role)
+        allowed = [r.value if hasattr(r, 'value') else str(r) for r in roles]
+        if role_val not in allowed:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires role: {' or '.join(roles)}. You have: {current_user.role}"
+                detail=f"Requires role: {' or '.join(allowed)}. You have: {role_val}"
             )
         return current_user
     return _check
+
